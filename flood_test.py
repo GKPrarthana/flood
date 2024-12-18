@@ -140,4 +140,74 @@ axes[1, 1].set_title('Residual Distribution (XGBoost)')
 plt.tight_layout()
 #plt.show()
 #-------------------------------------------------------------------------
+from catboost import CatBoostRegressor, Pool
+#scaled_train.columns.tolist()
+#scaled_test.columns.tolist()
+X = scaled_train
+y=y
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.2,random_state=1)
 
+pool_train = Pool(X_train,y_train)
+pool_test = Pool(X_test)
+
+import time
+start = time.time()
+cbr = CatBoostRegressor()
+cbr.fit(pool_train)
+y_pred = cbr.predict(X_test)
+
+from sklearn.metrics import r2_score as Rsquared
+cb_rsquared = np.sqrt(Rsquared(y_test,y_pred))
+print("R2 for CatBoostRegressor:",np.mean(cb_rsquared))
+
+end = time.time()
+diff = end - start
+print("Execution Time:",diff)
+
+#----------------------------------------------------------------------------
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Calculate residuals
+catboost_residuals = y_test - y_pred
+
+# Create subplots
+fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(18, 10))
+
+# Residual Plot
+axes[0, 0].scatter(y_pred, catboost_residuals, color='blue', alpha=0.5)
+axes[0, 0].axhline(y=0, color='red', linestyle='--')
+axes[0, 0].set_title('Residual Plot (CatBoost)')
+axes[0, 0].set_xlabel('Predicted Values')
+axes[0, 0].set_ylabel('Residuals')
+axes[0, 0].grid(True)
+
+# Actual vs. Predicted Plot
+axes[0, 1].scatter(y_test, y_pred, color='blue', alpha=0.5)
+axes[0, 1].plot([min(y_test), max(y_test)], [min(y_test), max(y_test)], color='red', linestyle='--')
+axes[0, 1].set_title('Actual vs. Predicted Plot (CatBoost)')
+axes[0, 1].set_xlabel('Actual Values')
+axes[0, 1].set_ylabel('Predicted Values')
+axes[0, 1].grid(True)
+
+# Feature Importance Plot
+feature_importances = cbr.get_feature_importance(prettified=True)
+axes[1, 0].bar(feature_importances['Feature Id'], feature_importances['Importances'], color='blue', alpha=0.7)
+axes[1, 0].set_title('Feature Importance (CatBoost)')
+axes[1, 0].set_xlabel('Feature')
+axes[1, 0].set_ylabel('Importance')
+axes[1, 0].tick_params(axis='x', rotation=90)  # Rotate x-axis labels for readability
+
+# Residual Distribution Plot
+axes[1, 1].hist(catboost_residuals, bins=30, color='blue', alpha=0.5)
+axes[1, 1].set_title('Residual Distribution (CatBoost)')
+axes[1, 1].set_xlabel('Residuals')
+axes[1, 1].set_ylabel('Frequency')
+axes[1, 1].grid(True)
+
+# Add overall styling
+plt.tight_layout()
+plt.show()
+
+#----------------------------------------------------------------

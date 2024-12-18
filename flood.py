@@ -140,4 +140,73 @@ axes[1, 1].set_title('Residual Distribution (XGBoost)')
 plt.tight_layout()
 #plt.show()
 #-------------------------------------------------------------------------
+#catboost
+from catboost import CatBoostRegressor
+from sklearn.metrics import r2_score
+from sklearn.model_selection import KFold
 
+n_splits = 5
+kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
+catboost_params = {
+    'random_state':42,
+    'learning_rate':0.0112770163043636001,
+    'depth':8,
+    'subsample':0.8675506657380021,
+    'colsample_bylevel':0.7183884158632279,
+    'min_data_in_leaf':98
+}
+
+catboost_predictions = np.zeros(len(scaled_train))
+catboost_true_labels = np.zeros(len(scaled_train))
+catboost_test_predictions = np.zeros(len(scaled_test))
+
+for fold,(train_idx,val_idx) in enumerate(kf.split(scaled_train,y)):
+    X_train, X_val = scaled_train.iloc[train_idx], scaled_train.iloc[val_idx]
+    y_train,y_val = y.iloc[train_idx],y.iloc[val_idx]
+    catboost_model = CatBoostRegressor(**catboost_params)
+    catboost_model.fit(X_train,y_train, eval_set=(X_val,y_val), early_stopping_rounds=10)
+    catboost_fold_preds = catboost_model.predict(scaled_test)
+    catboost_fold_test_preds = catboost_model.predict(scaled_test)
+    catboost_predictions[val_idx] = catboost_fold_preds
+    catboost_true_labels[val_idx] = y_val
+    catboost_test_predictions += catboost_fold_test_preds / n_splits
+
+overall_metric_catboost = r2_score(catboost_true_labels, catboost_predictions)
+print("Overall R^2 (CatBoostRegressor):", overall_metric_catboost)
+#ValueError: shape mismatch: value array of shape (745305,) could not be broadcast to indexing result of shape (169820,) 
+#plot
+#---------------------------------------------------------------------------------------------------
+catboost_residuals = catboost_predictions - catboost_true_labels
+fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(18, 10))
+
+
+axes[0, 0].scatter(catboost_predictions, catboost_residuals, color='blue', alpha=0.5)
+axes[0, 0].axhline(y=0, color='red', linestyle='--')
+axes[0, 0].set_title('Residual Plot (CatBoost)')
+axes[0, 0].set_xlabel('Predicted Values')
+axes[0, 0].set_ylabel('Residuals')
+axes[0, 0].grid(True)
+
+
+axes[0, 1].scatter(catboost_true_labels, catboost_predictions, color='blue', alpha=0.5)
+axes[0, 1].plot([min(catboost_true_labels), max(catboost_true_labels)], [min(catboost_true_labels), max(catboost_true_labels)], color='red', linestyle='--')
+axes[0, 1].set_title('Actual vs. Predicted Plot (CatBoost)')
+axes[0, 1].set_xlabel('Actual Values')
+axes[0, 1].set_ylabel('Predicted Values')
+axes[0, 1].grid(True)
+
+
+catboost_model.get_feature_importance(prettified=True).plot(kind='bar', x='Feature Id', y='Importances', ax=axes[1, 0])
+axes[1, 0].set_title('Feature Importance (CatBoost)')
+axes[1, 0].set_xlabel('Feature')
+axes[1, 0].set_ylabel('Importance')
+
+
+axes[1, 1].hist(catboost_residuals, bins=30, color='blue', alpha=0.5)
+axes[1, 1].set_title('Residual Distribution (CatBoost)')
+axes[1, 1].set_xlabel('Residuals')
+axes[1, 1].set_ylabel('Frequency')
+axes[1, 1].grid(True)
+plt.gcf().set_facecolor('cyan')
+plt.tight_layout()
+plt.show()
