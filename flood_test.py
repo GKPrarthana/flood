@@ -14,6 +14,11 @@ test = pd.read_csv("test.csv")
 print("Train Shape:", train.shape)
 print("Test Shape:", test.shape)
 
+train.head()
+test.head()
+train.columns.tolist()
+test.columns.tolist()
+
 # Drop 'id' from both datasets for analysis
 train_id = train['id']
 test_id = test['id']
@@ -51,18 +56,16 @@ y = y.loc[train_cleaned.index]
 # Feature Engineering Function
 def feature_engineering(df):
     features = df.columns.tolist()
-    df["mean_features"] = df[features].mean(axis=1)
-    df["std_features"] = df[features].std(axis=1)
-    df["max_features"] = df[features].max(axis=1)
-    df["min_features"] = df[features].min(axis=1)
-    df["range_features"] = df["max_features"] - df["min_features"]
-    df["variance_features"] = df[features].var(axis=1)
-    df["skewness_features"] = df[features].skew(axis=1)
-    df["sum_features"] = df[features].sum(axis=1)
-
-    # Additional statistical measures
-    df['kurtosis_features'] = df[features].kurtosis(axis=1)
-    df['median_absolute_deviation'] = (df[features] - df[features].median(axis=1).values.reshape(-1, 1)).abs().mean(axis=1)
+    df.loc[:, "mean_features"] = df[features].mean(axis=1)
+    df.loc[:, "std_features"] = df[features].std(axis=1)
+    df.loc[:, "max_features"] = df[features].max(axis=1)
+    df.loc[:, "min_features"] = df[features].min(axis=1)
+    df.loc[:, "range_features"] = df["max_features"] - df["min_features"]
+    df.loc[:, "variance_features"] = df[features].var(axis=1)
+    df.loc[:, "skewness_features"] = df[features].skew(axis=1)
+    df.loc[:, "sum_features"] = df[features].sum(axis=1)
+    df.loc[:, "kurtosis_features"] = df[features].kurtosis(axis=1)
+    df.loc[:, "median_absolute_deviation"] = (df[features] - df[features].median(axis=1).values.reshape(-1, 1)).abs().mean(axis=1)
     return df
 
 # Apply Feature Engineering
@@ -156,17 +159,16 @@ X = scaled_train
 y=y
 
 start = time.time()
-lgbmr = lightgbm.LGBMRegressor()
 
 from sklearn.model_selection import train_test_split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1)
-lgbmr.fit(X_train,y_train)
-y_pred_lgbm = lgbmr.predict(X_test)
 
 from sklearn.metrics import r2_score as Rsquared
-lgbm_rsquared = np.sqrt(Rsquared(y_test,y_pred_lgbm))
-print()
-print("R squared for LightGBM: ", np.mean(lgbm_rsquared))
+lgbmr = lightgbm.LGBMRegressor()
+lgbmr.fit(X_train, y_train)
+y_pred_lgbm = lgbmr.predict(X_test)
+lgbm_rsquared = np.sqrt(Rsquared(y_test, y_pred_lgbm))
+print("R squared for LightGBM: ", lgbm_rsquared)
 
 end = time.time()
 diff = end - start
