@@ -317,7 +317,8 @@ df_pred = pd.DataFrame({
 # Save to CSV
 df_pred.to_csv('predictions.csv', index=False)
 
-df_pred['FloodProbability'].hist(color='skyblue', bins=30, edgecolor = 'black')
+#hist for predicted FP
+df_pred['FloodProbability'].hist(color='skyblue', bins=30, edgecolor='black')
 plt.title('Predicted Flood Probability Distribution')
 plt.xlabel('Flood Probability')
 plt.ylabel('Frequency')
